@@ -1,0 +1,37 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group 'nl.rws.otl'
+version '0.1-SNAPSHOT'
+mainClassName = 'nl.rws.otl.git_tools.ReSerialize'
+applicationName = 'ReSerialize'
+
+repositories {
+    mavenCentral()
+}
+
+project.ext.versions = [
+        owlapi : '5.1.14',
+        lombok : '1.18.12',
+        slf4j  : '1.7.30'
+]
+
+dependencies {
+    implementation "net.sourceforge.owlapi:owlapi-apibinding:${versions.owlapi}"
+    implementation "org.slf4j:slf4j-simple:${versions.slf4j}"
+    compileOnly "org.projectlombok:lombok:${versions.lombok}"
+    annotationProcessor "org.projectlombok:lombok:${versions.lombok}"
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+jar {
+    manifest {
+        attributes(
+                'Class-Path': configurations.compile.collect { it.getName() }.join(' '),
+                'Main-Class': mainClassName
+        )
+    }
+}
