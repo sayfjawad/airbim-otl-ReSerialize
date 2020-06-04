@@ -21,14 +21,23 @@ public class ReSerializeTest {
     public final ExpectedSystemExit exit = ExpectedSystemExit.none();
 
     @Test
-    public void testMainNoCommand() {
+    public void testMainNoCommand() throws NoSuchAlgorithmException {
         exit.expectSystemExitWithStatus(2);
         String[] args = {};
         ReSerialize.main(args);
     }
 
     @Test
-    public void testMainValid() {
+    public void testMainStdin() throws IOException, NoSuchAlgorithmException {
+        exit.expectSystemExitWithStatus(0);
+        assertNotNull(testTtlFixed);
+        System.setIn(testTtlFixed.openStream());
+        String[] args = {"-f","-"};
+        ReSerialize.main(args);
+    }
+
+    @Test
+    public void testMainValid() throws NoSuchAlgorithmException {
         exit.expectSystemExitWithStatus(0);
         assertNotNull(testTtlFixed);
         String[] args = {"-f",testTtlFixed.getPath()};
@@ -36,7 +45,7 @@ public class ReSerializeTest {
     }
 
     @Test
-    public void testMainDifferent() {
+    public void testMainDifferent() throws NoSuchAlgorithmException {
         exit.expectSystemExitWithStatus(1);
         assertNotNull(testTtl);
         String[] args = {"-f",testTtl.getPath()};
@@ -44,7 +53,7 @@ public class ReSerializeTest {
     }
 
     @Test
-    public void testMainOutput() throws IOException {
+    public void testMainOutput() throws IOException, NoSuchAlgorithmException {
         exit.expectSystemExitWithStatus(1);
         assertNotNull(testTtl);
 
@@ -59,7 +68,7 @@ public class ReSerializeTest {
     }
 
     @Test
-    public void testMainReplace() throws IOException {
+    public void testMainReplace() throws IOException, NoSuchAlgorithmException {
         exit.expectSystemExitWithStatus(1);
         assertNotNull(testTtl);
 

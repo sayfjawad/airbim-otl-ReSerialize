@@ -5,6 +5,8 @@ import org.apache.commons.cli.*;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.formats.TurtleDocumentFormat;
 import org.semanticweb.owlapi.io.FileDocumentSource;
+import org.semanticweb.owlapi.io.OWLOntologyDocumentSourceBase;
+import org.semanticweb.owlapi.io.StreamDocumentSource;
 import org.semanticweb.owlapi.model.*;
 
 import java.io.*;
@@ -23,9 +25,9 @@ public class ReSerialize {
     private static final int STATUS_CHANGED = 1;
     private static final int STATUS_ERROR = 2;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws NoSuchAlgorithmException {
         Options options = new Options();
-        options.addRequiredOption(OPTION_INPUT, "file", true, "File to validate");
+        options.addRequiredOption(OPTION_INPUT, "file", true, "File to validate (or - for stdin)");
         options.addOption(OPTION_REPLACE, "replace", false, "Replace the file with the re-serialized version");
         options.addOption(OPTION_OUTPUT, "output", true, "File to write with the re-serialized version");
 
@@ -37,24 +39,38 @@ public class ReSerialize {
             System.exit(STATUS_ERROR);
         }
 
-        Path filePath = Paths.get(cmdArgs.getOptionValue(OPTION_INPUT));
-        FileDocumentSource fileDocumentSource = new FileDocumentSource(filePath.toFile());
+        OWLOntologyDocumentSourceBase documentSource = null;
+        String inputHash = null;
+        Path filePath = null;
+        try {
+            if (cmdArgs.getOptionValue(OPTION_INPUT).equals("-")) {
+                byte[] input = System.in.readAllBytes();
+                documentSource = new StreamDocumentSource(new ByteArrayInputStream(input));
+                inputHash = getHash(new ByteArrayInputStream(input));
+            } else {
+                filePath = Paths.get(cmdArgs.getOptionValue(OPTION_INPUT));
+                documentSource = new FileDocumentSource(filePath.toFile());
+                inputHash = getHash(new FileInputStream(filePath.toFile()));
+            }
+        } catch (IOException e) {
+            log.error("Failed to load: {}", e.getMessage());
+            System.exit(STATUS_ERROR);
+        }
         CustomOntologyLoaderConfiguration customOntologyLoaderConfiguration = new CustomOntologyLoaderConfiguration();
 
         OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
         try {
-            String inputHash = getHash(new FileInputStream(filePath.toFile()));
-
-            OWLOntology ontology = manager.loadOntologyFromOntologyDocument(fileDocumentSource, customOntologyLoaderConfiguration);
+            OWLOntology ontology = manager.loadOntologyFromOntologyDocument(documentSource, customOntologyLoaderConfiguration);
             ByteArrayOutputStream output = new ByteArrayOutputStream();
             manager.saveOntology(ontology, new TurtleDocumentFormat(), output);
             byte[] outputBytes = output.toByteArray();
-            String outputHash = getHash(new ByteArrayInputStream(outputBytes));
+            String outputHash = null;
+            outputHash = getHash(new ByteArrayInputStream(outputBytes));
 
             if (!inputHash.equals(outputHash)){
                 log.info("ReSerialized version is different from input.");
 
-                if(cmdArgs.hasOption(OPTION_REPLACE)) {
+                if(cmdArgs.hasOption(OPTION_REPLACE) && filePath!=null) {
                     writeFile(outputBytes, filePath.toFile());
                 } else if(cmdArgs.hasOption(OPTION_OUTPUT)) {
                     writeFile(outputBytes, new File(cmdArgs.getOptionValue(OPTION_OUTPUT)));
@@ -62,14 +78,11 @@ public class ReSerialize {
 
                 System.exit(STATUS_CHANGED);
             }
-        } catch (IOException | OWLOntologyCreationException e) {
-            log.error("Failed to load: {}", e.getMessage());
+        } catch (OWLOntologyCreationException e) {
+            log.error("Failed to load ontology: {}", e.getMessage());
             System.exit(STATUS_ERROR);
-        } catch (OWLOntologyStorageException e) {
+        } catch (IOException | OWLOntologyStorageException e) {
             log.error("Failed to save: {}", e.getMessage());
-            System.exit(STATUS_ERROR);
-        } catch (NoSuchAlgorithmException e) {
-            log.error("Failed to use algorithm: {}", e.getMessage());
             System.exit(STATUS_ERROR);
         }
 
