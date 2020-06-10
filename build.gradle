@@ -41,3 +41,11 @@ jar {
         )
     }
 }
+
+distributions {
+    main {
+        contents {
+            from 'LICENSE'
+        }
+    }
+}
