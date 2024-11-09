@@ -21,90 +21,138 @@ public class ReSerialize {
     private static final String OPTION_INPUT = "f";
     private static final String OPTION_OUTPUT = "o";
     private static final String OPTION_REPLACE = "r";
-
     private static final int STATUS_CHANGED = 1;
     private static final int STATUS_ERROR = 2;
 
-    public static void main(String[] args) throws NoSuchAlgorithmException {
+    public static void main(String[] args) {
+        Options options = createOptions();
+        CommandLine cmdArgs = parseArguments(options, args);
+
+        if (cmdArgs == null) {
+            printHelpAndExit(options);
+        }
+
+        Path filePath = getFilePath(cmdArgs);
+        OWLOntologyDocumentSourceBase documentSource = createDocumentSource(cmdArgs, filePath);
+        if (documentSource == null) {
+            System.exit(STATUS_ERROR);
+        }
+
+        String inputHash = computeFileHash(documentSource);
+        if (inputHash == null) {
+            System.exit(STATUS_ERROR);
+        }
+
+        processOntology(cmdArgs, documentSource, inputHash, filePath);
+    }
+
+    private static Options createOptions() {
         Options options = new Options();
         options.addRequiredOption(OPTION_INPUT, "file", true, "File to validate (or - for stdin)");
         options.addOption(OPTION_REPLACE, "replace", false, "Replace the file with the re-serialized version");
         options.addOption(OPTION_OUTPUT, "output", true, "File to write with the re-serialized version");
+        return options;
+    }
 
-        CommandLine cmdArgs = null;
+    private static CommandLine parseArguments(Options options, String[] args) {
         try {
-            cmdArgs = new DefaultParser().parse(options, args, true);
+            return new DefaultParser().parse(options, args, true);
         } catch (ParseException e) {
-            new HelpFormatter().printHelp("ReSerialize", options, true);
-            System.exit(STATUS_ERROR);
+            log.error("Error parsing arguments: {}", e.getMessage());
+            return null;
         }
+    }
 
-        OWLOntologyDocumentSourceBase documentSource = null;
-        String inputHash = null;
-        Path filePath = null;
+    private static void printHelpAndExit(Options options) {
+        new HelpFormatter().printHelp("ReSerialize", options, true);
+        System.exit(STATUS_ERROR);
+    }
+
+    private static Path getFilePath(CommandLine cmdArgs) {
+        return cmdArgs.getOptionValue(OPTION_INPUT).equals("-") ? null : Paths.get(cmdArgs.getOptionValue(OPTION_INPUT));
+    }
+
+    private static OWLOntologyDocumentSourceBase createDocumentSource(CommandLine cmdArgs, Path filePath) {
         try {
-            if (cmdArgs.getOptionValue(OPTION_INPUT).equals("-")) {
+            if (filePath == null) {
                 byte[] input = System.in.readAllBytes();
-                documentSource = new StreamDocumentSource(new ByteArrayInputStream(input));
-                inputHash = getHash(new ByteArrayInputStream(input));
-            } else {
-                filePath = Paths.get(cmdArgs.getOptionValue(OPTION_INPUT));
-                documentSource = new FileDocumentSource(filePath.toFile());
-                inputHash = getHash(new FileInputStream(filePath.toFile()));
+                return new StreamDocumentSource(new ByteArrayInputStream(input));
             }
+            return new FileDocumentSource(filePath.toFile());
         } catch (IOException e) {
-            log.error("Failed to load: {}", e.getMessage());
-            System.exit(STATUS_ERROR);
+            log.error("Failed to load document source: {}", e.getMessage());
+            return null;
         }
-        CustomOntologyLoaderConfiguration customOntologyLoaderConfiguration = new CustomOntologyLoaderConfiguration();
+    }
 
-        OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
+    private static String computeFileHash(OWLOntologyDocumentSourceBase documentSource) {
+        try (InputStream inputStream = getInputStreamFromSource(documentSource)) {
+            return getHash(inputStream);
+        } catch (IOException | NoSuchAlgorithmException e) {
+            log.error("Failed to compute file hash: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private static InputStream getInputStreamFromSource(OWLOntologyDocumentSourceBase documentSource) throws IOException {
+        if (documentSource instanceof StreamDocumentSource) {
+            return (documentSource).getInputStream().get();
+        } else if (documentSource instanceof FileDocumentSource) {
+            // Cast to FileDocumentSource and use the file path directly
+            return new FileInputStream(new File((documentSource).getDocumentIRI().toURI()));
+        }
+        return null;
+    }
+
+
+    private static void processOntology(CommandLine cmdArgs, OWLOntologyDocumentSourceBase documentSource,
+            String inputHash, Path filePath) {
         try {
-            OWLOntology ontology = manager.loadOntologyFromOntologyDocument(documentSource, customOntologyLoaderConfiguration);
-            ByteArrayOutputStream output = new ByteArrayOutputStream();
-            manager.saveOntology(ontology, new TurtleDocumentFormat(), output);
-            byte[] outputBytes = output.toByteArray();
-            String outputHash = null;
-            outputHash = getHash(new ByteArrayInputStream(outputBytes));
+            OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
+            OWLOntology ontology = loadOntology(manager, documentSource);
+            byte[] outputBytes = serializeOntology(manager, ontology);
+            String outputHash = getHash(new ByteArrayInputStream(outputBytes));
 
-            if (!inputHash.equals(outputHash)){
-                log.info("ReSerialized version is different from input.");
-
-                if(cmdArgs.hasOption(OPTION_REPLACE) && filePath!=null) {
-                    writeFile(outputBytes, filePath.toFile());
-                } else if(cmdArgs.hasOption(OPTION_OUTPUT)) {
-                    writeFile(outputBytes, new File(cmdArgs.getOptionValue(OPTION_OUTPUT)));
-                }
-
+            if (!inputHash.equals(outputHash)) {
+                handleOutput(cmdArgs, outputBytes, filePath);
                 System.exit(STATUS_CHANGED);
             }
-        } catch (OWLOntologyCreationException e) {
-            log.error("Failed to load ontology: {}", e.getMessage());
-            System.exit(STATUS_ERROR);
-        } catch (IOException | OWLOntologyStorageException e) {
-            log.error("Failed to save: {}", e.getMessage());
+        } catch (Exception e) {
+            log.error("Error processing ontology: {}", e.getMessage());
             System.exit(STATUS_ERROR);
         }
+    }
 
-        System.exit(0);
+    private static OWLOntology loadOntology(OWLOntologyManager manager, OWLOntologyDocumentSourceBase documentSource) throws OWLOntologyCreationException {
+        CustomOntologyLoaderConfiguration config = new CustomOntologyLoaderConfiguration();
+        return manager.loadOntologyFromOntologyDocument(documentSource, config);
+    }
+
+    private static byte[] serializeOntology(OWLOntologyManager manager, OWLOntology ontology) throws OWLOntologyStorageException, IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        manager.saveOntology(ontology, new TurtleDocumentFormat(), output);
+        return output.toByteArray();
+    }
+
+    private static void handleOutput(CommandLine cmdArgs, byte[] outputBytes, Path filePath) throws IOException {
+        if (cmdArgs.hasOption(OPTION_REPLACE) && filePath != null) {
+            writeFile(outputBytes, filePath.toFile());
+        } else if (cmdArgs.hasOption(OPTION_OUTPUT)) {
+            writeFile(outputBytes, new File(cmdArgs.getOptionValue(OPTION_OUTPUT)));
+        }
     }
 
     public static class CustomOntologyLoaderConfiguration extends OWLOntologyLoaderConfiguration {
         @Override
-        public boolean isIgnoredImport(@SuppressWarnings("NullableProblems") IRI iri) {
-            // Always ignore imports
-            return true;
+        public boolean isIgnoredImport(IRI iri) {
+            return true;  // Always ignore imports
         }
     }
 
     public static String getHash(InputStream inputStream) throws NoSuchAlgorithmException, IOException {
-        MessageDigest md;
-        try (DigestInputStream dis = new DigestInputStream(inputStream, MessageDigest.getInstance("SHA-256"))) {
-            //noinspection StatementWithEmptyBody
-            while (dis.read() != -1) {
-                //empty loop to clear the data
-            }
-            md = dis.getMessageDigest();
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        try (DigestInputStream dis = new DigestInputStream(inputStream, md)) {
+            while (dis.read() != -1) { /* Read through the stream */ }
         }
 
         StringBuilder result = new StringBuilder();
