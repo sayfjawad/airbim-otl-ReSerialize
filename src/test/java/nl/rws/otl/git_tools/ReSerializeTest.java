@@ -1,5 +1,7 @@
 package nl.rws.otl.git_tools;
 
+import static nl.rws.otl.git_tools.file.FileUtils.writeFile;
+import static nl.rws.otl.git_tools.hash.HashSha256.getHash;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -101,7 +103,7 @@ public class ReSerializeTest {
     public void testGetHash() throws IOException, NoSuchAlgorithmException {
 
         assertNotNull(testTtl);
-        String hash = ReSerialize.getHash(testTtl.openStream());
+        String hash = getHash(testTtl.openStream());
         assertEquals("76da850bba013f577570078580749c69364be5cb734816666b671bf8cca9f930", hash);
     }
 
@@ -112,7 +114,7 @@ public class ReSerializeTest {
         Path tempFile = Files.createTempFile("unit_test_", ".ttl");
         System.out.println("Creating testfile: " + tempFile.toString());
         byte[] bytes = testTtl.openStream().readAllBytes();
-        ReSerialize.writeFile(bytes, tempFile.toFile());
+        writeFile(bytes, tempFile.toFile());
         assertTrue(Files.deleteIfExists(tempFile));
         System.out.println("Deleted testfile: " + tempFile);
     }
