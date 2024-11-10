@@ -4,6 +4,7 @@ import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLOntologyLoaderConfiguration;
 
 public class OntologyConfig {
+
     public static class CustomOntologyLoaderConfiguration extends OWLOntologyLoaderConfiguration {
 
         @Override

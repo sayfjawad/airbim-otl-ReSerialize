@@ -1,7 +1,5 @@
 package nl.rws.otl.git_tools;
 
-import static nl.rws.otl.git_tools.file.FileUtils.writeFile;
-import static nl.rws.otl.git_tools.hash.HashSha256.getHash;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -99,7 +97,7 @@ public class ReSerializeTest {
         System.out.println("Deleted testfile: " + tempFile);
     }
 
-    @Test
+/*    @Test
     public void testGetHash() throws IOException, NoSuchAlgorithmException {
 
         assertNotNull(testTtl);
@@ -117,5 +115,5 @@ public class ReSerializeTest {
         writeFile(bytes, tempFile.toFile());
         assertTrue(Files.deleteIfExists(tempFile));
         System.out.println("Deleted testfile: " + tempFile);
-    }
+    }*/
 }

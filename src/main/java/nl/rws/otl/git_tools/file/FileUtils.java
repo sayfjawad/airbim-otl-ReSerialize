@@ -9,21 +9,23 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import lombok.NoArgsConstructor;
 import org.apache.commons.cli.CommandLine;
 import org.semanticweb.owlapi.io.FileDocumentSource;
 import org.semanticweb.owlapi.io.OWLOntologyDocumentSourceBase;
 import org.semanticweb.owlapi.io.StreamDocumentSource;
 
+@NoArgsConstructor
 public class FileUtils {
 
-    public static Path getFilePath(CommandLine cmdArgs) {
+    public Path getFilePath(final CommandLine cmdArgs) {
 
         return cmdArgs.getOptionValue(OPTION_INPUT).equals("-") ? null
                 : Paths.get(cmdArgs.getOptionValue(OPTION_INPUT));
     }
 
-    public static InputStream getInputStreamFromSource(
-            OWLOntologyDocumentSourceBase documentSource) throws IOException {
+    public InputStream getInputStreamFromSource(
+            final OWLOntologyDocumentSourceBase documentSource) throws IOException {
 
         if (documentSource instanceof StreamDocumentSource) {
             return (documentSource).getInputStream().get();
@@ -34,7 +36,7 @@ public class FileUtils {
         return null;
     }
 
-    public static void writeFile(byte[] outputBytes, File file) throws IOException {
+    public void writeFile(final byte[] outputBytes, final File file) throws IOException {
 
         try (FileOutputStream fileOutputStream = new FileOutputStream(file)) {
             fileOutputStream.write(outputBytes);
