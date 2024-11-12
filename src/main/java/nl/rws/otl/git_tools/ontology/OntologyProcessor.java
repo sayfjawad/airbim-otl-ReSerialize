@@ -7,7 +7,7 @@ import java.nio.file.Path;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nl.rws.otl.git_tools.handler.OutputHandler;
-import nl.rws.otl.git_tools.hash.HashSha256;
+import nl.rws.otl.git_tools.hash.HashCalculator;
 import org.apache.commons.cli.CommandLine;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.io.OWLOntologyDocumentSourceBase;
@@ -24,7 +24,7 @@ public class OntologyProcessor {
 
     private final OntologySerializer serializer;
     private final OutputHandler outputHandler;
-    private final HashSha256 hashSha256;
+    private final HashCalculator hashCalculator;
 
     public void processOntology(final CommandLine cmdArgs,
             final OWLOntologyDocumentSourceBase documentSource,
@@ -35,7 +35,7 @@ public class OntologyProcessor {
             final OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
             final OWLOntology ontology = loadOntology(manager, documentSource);
             final byte[] outputBytes = serializer.serializeOntology(manager, ontology);
-            String outputHash = hashSha256.getHash(new ByteArrayInputStream(outputBytes));
+            String outputHash = hashCalculator.getHash(new ByteArrayInputStream(outputBytes));
 
             if (!inputHash.equals(outputHash)) {
                 outputHandler.handleOutput(cmdArgs, outputBytes, filePath);

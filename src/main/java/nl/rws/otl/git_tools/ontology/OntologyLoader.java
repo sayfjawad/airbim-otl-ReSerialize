@@ -1,6 +1,5 @@
 package nl.rws.otl.git_tools.ontology;
 
-import nl.rws.otl.git_tools.ontology.OntologyConfig.CustomOntologyLoaderConfiguration;
 import org.semanticweb.owlapi.io.OWLOntologyDocumentSourceBase;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;

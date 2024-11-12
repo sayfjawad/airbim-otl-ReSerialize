@@ -12,6 +12,7 @@ import org.apache.commons.cli.ParseException;
 public class CliArgumentParser {
 
     public CommandLine parseArguments(Options options, String[] args) {
+
         try {
             return new DefaultParser().parse(options, args, true);
         } catch (ParseException e) {
@@ -19,5 +20,4 @@ public class CliArgumentParser {
             return null;
         }
     }
-
 }

@@ -12,7 +12,7 @@ import org.semanticweb.owlapi.io.OWLOntologyDocumentSourceBase;
 
 @Slf4j
 @RequiredArgsConstructor
-public class HashSha256 {
+public class HashCalculator {
 
     private final FileUtils fileUtils;
 
