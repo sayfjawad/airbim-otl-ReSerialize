@@ -1,6 +1,5 @@
 package nl.rws.otl.git_tools;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -9,7 +8,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.NoSuchAlgorithmException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.ExpectedSystemExit;
@@ -30,7 +28,7 @@ public class ReSerializeTest {
 
         exit.expectSystemExitWithStatus(2);
         String[] args = {};
-        ReSerialize.main(args);
+        App.main(args);
     }
 
     @Test
@@ -40,7 +38,7 @@ public class ReSerializeTest {
         assertNotNull(testTtlFixed);
         System.setIn(testTtlFixed.openStream());
         String[] args = {"-f", "-"};
-        ReSerialize.main(args);
+        App.main(args);
     }
 
     @Test
@@ -49,7 +47,7 @@ public class ReSerializeTest {
         exit.expectSystemExitWithStatus(0);
         assertNotNull(testTtlFixed);
         String[] args = {"-f", testTtlFixed.getPath()};
-        ReSerialize.main(args);
+        App.main(args);
     }
 
     @Test
@@ -58,7 +56,7 @@ public class ReSerializeTest {
         exit.expectSystemExitWithStatus(1);
         assertNotNull(testTtl);
         String[] args = {"-f", testTtl.getPath()};
-        ReSerialize.main(args);
+        App.main(args);
     }
 
     @Test
@@ -71,7 +69,7 @@ public class ReSerializeTest {
         System.out.println("Creating testfile: " + tempFile.toString());
 
         String[] args = {"-f", testTtl.getPath(), "-o", tempFile.toString()};
-        ReSerialize.main(args);
+        App.main(args);
 
         assertTrue(Files.deleteIfExists(tempFile));
         System.out.println("Deleted testfile: " + tempFile.toString());
@@ -91,29 +89,9 @@ public class ReSerializeTest {
         assertTrue(Files.exists(tempFile));
 
         String[] args = {"-f", tempFile.toString(), "-r"};
-        ReSerialize.main(args);
+        App.main(args);
 
         assertTrue(Files.deleteIfExists(tempFile));
         System.out.println("Deleted testfile: " + tempFile);
     }
-
-/*    @Test
-    public void testGetHash() throws IOException, NoSuchAlgorithmException {
-
-        assertNotNull(testTtl);
-        String hash = getHash(testTtl.openStream());
-        assertEquals("76da850bba013f577570078580749c69364be5cb734816666b671bf8cca9f930", hash);
-    }
-
-    @Test
-    public void testWriteFile() throws IOException {
-
-        assertNotNull(testTtl);
-        Path tempFile = Files.createTempFile("unit_test_", ".ttl");
-        System.out.println("Creating testfile: " + tempFile.toString());
-        byte[] bytes = testTtl.openStream().readAllBytes();
-        writeFile(bytes, tempFile.toFile());
-        assertTrue(Files.deleteIfExists(tempFile));
-        System.out.println("Deleted testfile: " + tempFile);
-    }*/
 }
