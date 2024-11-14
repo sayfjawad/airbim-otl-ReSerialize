@@ -7,7 +7,7 @@ import org.semanticweb.owlapi.model.OWLOntologyManager;
 
 public class OntologyLoader {
 
-    public static OWLOntology loadOntology(OWLOntologyManager manager, OWLOntologyDocumentSourceBase documentSource) throws OWLOntologyCreationException {
+    public OWLOntology load(OWLOntologyManager manager, OWLOntologyDocumentSourceBase documentSource) throws OWLOntologyCreationException {
         CustomOntologyLoaderConfiguration config = new CustomOntologyLoaderConfiguration();
         return manager.loadOntologyFromOntologyDocument(documentSource, config);
     }

@@ -38,7 +38,7 @@ class OntologyLoaderTest {
                 .thenReturn(ontology);
 
         // Act
-        OWLOntology result = OntologyLoader.loadOntology(manager, documentSource);
+        OWLOntology result = new OntologyLoader().load(manager, documentSource);
 
         // Assert
         assertThat(result).isEqualTo(ontology);
@@ -53,7 +53,7 @@ class OntologyLoaderTest {
                 .thenThrow(new OWLOntologyCreationException("Failed to load ontology"));
 
         // Act & Assert
-        assertThatThrownBy(() -> OntologyLoader.loadOntology(manager, documentSource))
+        assertThatThrownBy(() -> new OntologyLoader().load(manager, documentSource))
                 .isInstanceOf(OWLOntologyCreationException.class)
                 .hasMessageContaining("Failed to load ontology");
 
